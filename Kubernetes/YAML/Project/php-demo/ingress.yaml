@@ -1,0 +1,15 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: php-demo 
+  namespace: test
+spec:
+  rules:
+    - host: php.ctnrs.com
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: php-demo 
+            servicePort: 80
+
