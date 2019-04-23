@@ -1,0 +1,350 @@
+k8s经典实战——搭建WordPress
+说明：需要在k8s上部署lnmp环境，建议跟着步骤来端口最好不要改，希望你也能搭建成功，完成这个搭建后你对Kubernetes的技术基本上是入门了。首先看下效果图：
+
+一、部署存储
+1 准备一块100G磁盘做为LVM逻辑卷(参考：https://www.cnblogs.com/Dev0ps/p/9381244.html)
+fdisk -l
+fdisk /dev/vdb
+mkdir /u01
+pvcreate /dev/vdb1
+vgcreate vg0 /dev/vdb1 
+lvcreate -L 99G -n oralv vg0
+mkfs.ext4 /dev/vg0/oralv 
+mount /dev/vg0/oralv /u01/
+echo "/dev/vg0/oralv                   /u01                       ext4    defaults        0 0" >>/etc/fstab
+
+2、搭建NFS共享存储
+2.1 nfs服务端
+yum install nfs-utils -y
+mkdir -pv /u01/nps/volumes
+vim /etc/exports 
+/u01/nps/volumes    172.31.182.0/24(rw,no_root_squash)  
+systemctl start nfs
+2.2 创建nps挂载目录
+mkdir -pv /u01/nps/volumes/data{mysql,nginx}
+2.3 nfs客户端(k8s的node节点都需要安装)
+yum install nfs-utils -y
+
+#验证是否可以访问nfs服务端
+[root@node01 ~]# showmount -e 172.31.182.145
+Export list for 172.31.182.145:
+/u01/nps/volumes 172.31.182.0/24
+[root@node01 ~]# mount -t nfs 172.31.182.145:/u01/nps/volumes /mnt
+echo "172.31.182.145:/u01/nps/volumes                   /mnt                       nfs    defaults        0 0" >>/etc/fstab
+
+二、创建pv
+[root@master Dockerfile-lnmp]# cat pv.yaml 
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    path: /u01/nps/volumes/data/mysql
+    server: 172.31.182.145 
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: wp-pv01
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    path: /u01/nps/volumes/data/nginx
+    server: 172.31.182.145
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: wp-pv02
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    path: /u01/nps/volumes/data/nginx
+    server: 172.31.182.145
+创建pv：
+kubectl apply -f pv.yaml    
+三、部署mysql
+3.1 创建mysql-deployment
+[root@master Dockerfile-lnmp]# cat mysql-deployment.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-mysql
+  labels:
+    app: wordpress
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: wordpress
+    tier: mysql
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+  labels:
+    app: wordpress
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: wordpress-mysql
+  labels:
+    app: wordpress
+spec:
+  selector:
+    matchLabels:
+      app: wordpress
+      tier: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: wordpress
+        tier: mysql
+    spec:
+      containers:
+      - name: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.6
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-pass
+              key: password
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - mountPath: "/var/lib/mysql"
+          name: mysql-data
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim
+创建mysql容器：
+kubectl apply -f mysql-deployment.yaml        
+3.2 通过secret创建mysql密码
+kubectl create secret generic mysql-pass --from-literal=password=123456
+
+四、上传镜像到Harbor
+4.1 构建nginx镜像并上传
+[root@master nginx]# docker build -t 172.31.182.143/dev/nginx:latest .
+[root@master nginx]# docker push 172.31.182.143/dev/nginx:latest
+4.2 构建php镜像并上传
+[root@master php]# docker build -t 172.31.182.143/dev/php:latest .
+[root@master php]# docker push 172.31.182.143/dev/php:latest
+4.3 kubernetes配置Harbor仓库
+kubectl create secret docker-registry regcred --docker-server=172.31.182.143 --docker-username=admin --docker-password=Harbor%12345 --docker-email=admin@qq.com
+
+五、部署php环境
+5.1 创建php-deployment
+[root@master Dockerfile-lnmp]# cat php-deployment.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-php
+  labels:
+    app: wordpress
+spec:
+  ports:
+    - port: 9000
+  selector:
+    app: wordpress-php
+    tier: frontend
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wp-pvc01
+  labels:
+    app: wordpress
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: wordpress-php
+  labels:
+    app: wordpress
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wordpress-php
+      tier: frontend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: wordpress-php
+        tier: frontend
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: php
+        image: 172.31.182.143/dev/php:latest 
+        ports:
+        - containerPort: 9000
+          name: wordpress
+        volumeMounts:
+        - name: php-data
+          mountPath: "/usr/local/nginx/html"
+      volumes:
+      - name: php-data
+        persistentVolumeClaim:
+          claimName: wp-pvc01
+创建php容器：
+kubectl apply -f php-deployment.yaml 		  
+六、部署nginx环境
+6.1 创建nginx-deployment
+[root@master Dockerfile-lnmp]# cat nginx-deployment.yaml 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-wp-config
+data:
+  site.conf: |-
+    server {
+        listen 80;
+        server_name localhost;
+        root html;
+        index index.php index.html;
+
+        location ~ \.php$ {
+            root html;
+            fastcgi_pass wordpress-php:9000;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; 
+            include fastcgi_params;
+        }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-nginx
+  labels:
+    app: wordpress
+spec:
+  ports:
+    - port: 80
+  selector:
+    app: wordpress-nginx
+    tier: frontend
+  type: NodePort
+  sessionAffinity: ClientIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wp-pvc02
+  labels:
+    app: wordpress
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: wordpress-nginx
+  labels:
+    app: wordpress
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wordpress-nginx
+      tier: frontend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: wordpress-nginx
+        tier: frontend
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: nginx
+        image: 172.31.182.143/dev/nginx:latest 
+        ports:
+        - containerPort: 80
+          name: wordpress
+        volumeMounts:
+        - mountPath: "/usr/local/nginx/html"
+          name: nginx-data
+        - mountPath: "/usr/local/nginx/conf/vhost/site.conf"
+          name: config
+          subPath: site.conf
+      volumes:
+      - name: nginx-data
+        persistentVolumeClaim:
+          claimName: wp-pvc02
+      - name: config
+        configMap:
+          name: nginx-wp-config
+创建nginx容器：
+kubectl apply -f nginx-deployment.yaml 
+七、查看pod,svc,pv,pvc的状态
+7.1 kubectl get pod
+7.2 kubectl get svc
+7.3 kubectl get pv,pvc
+
+
+八、创建wordpress数据库
+[root@master nginx]# kubectl exec -it wordpress-mysql-68cb6cc5b4-xxfhh bash
+root@wordpress-mysql-68cb6cc5b4-xxfhh:/# mysql -uroot -p123456
+Warning: Using a password on the command line interface can be insecure.
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 105
+Server version: 5.6.43 MySQL Community Server (GPL)
+
+Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> create database wordpress;
+
+九、设置WordPress
+
+
+
+
