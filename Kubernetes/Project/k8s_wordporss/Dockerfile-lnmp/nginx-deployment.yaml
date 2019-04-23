@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-wp-config
+data:
+  site.conf: |-
+    server {
+        listen 80;
+        server_name localhost;
+        root html;
+        index index.php index.html;
+
+        location ~ \.php$ {
+            root html;
+            fastcgi_pass wordpress-php:9000;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; 
+            include fastcgi_params;
+        }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-nginx
+  labels:
+    app: wordpress
+spec:
+  ports:
+    - port: 80
+  selector:
+    app: wordpress-nginx
+    tier: frontend
+  type: NodePort
+  sessionAffinity: ClientIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wp-pvc02
+  labels:
+    app: wordpress
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: wordpress-nginx
+  labels:
+    app: wordpress
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wordpress-nginx
+      tier: frontend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: wordpress-nginx
+        tier: frontend
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: nginx
+        image: 172.31.182.143/dev/nginx:latest 
+        ports:
+        - containerPort: 80
+          name: wordpress
+        volumeMounts:
+        - mountPath: "/usr/local/nginx/html"
+          name: nginx-data
+        - mountPath: "/usr/local/nginx/conf/vhost/site.conf"
+          name: config
+          subPath: site.conf
+      volumes:
+      - name: nginx-data
+        persistentVolumeClaim:
+          claimName: wp-pvc02
+      - name: config
+        configMap:
+          name: nginx-wp-config
