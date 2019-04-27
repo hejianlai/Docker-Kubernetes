@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k8s-logs-filebeat-config
+  namespace: kube-system 
+  
+data:
+  filebeat.yml: |-
+    filebeat.prospectors:
+      - type: log
+        paths:
+          - /messages
+        fields:
+          app: k8s 
+          type: module 
+        fields_under_root: true
+
+    output.logstash:
+      hosts: ['172.31.182.140:5044']
+
+---
+
+apiVersion: apps/v1
+kind: DaemonSet 
+metadata:
+  name: k8s-logs
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      project: k8s 
+      app: filebeat
+  template:
+    metadata:
+      labels:
+        project: k8s
+        app: filebeat
+    spec:
+      containers:
+      - name: filebeat
+        image: docker.elastic.co/beats/filebeat:6.4.2
+        args: [
+          "-c", "/etc/filebeat.yml",
+          "-e",
+        ]
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 500m
+            memory: 500Mi
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - name: filebeat-config
+          mountPath: /etc/filebeat.yml
+          subPath: filebeat.yml
+        - name: k8s-logs 
+          mountPath: /messages
+      volumes:
+      - name: k8s-logs
+        hostPath: 
+          path: /var/log/messages
+          type: File
+      - name: filebeat-config
+        configMap:
+          name: k8s-logs-filebeat-config
