@@ -1,0 +1,19 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: zookeeper
+  labels: 
+    name: zookeeper
+  namespace: pcidata
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+    spec:
+      containers:
+      - name: zookeeper
+        image: 192.168.247.211:5000/zookeeper
+        ports:
+        - containerPort: 2181

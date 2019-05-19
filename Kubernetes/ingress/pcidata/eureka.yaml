@@ -1,0 +1,19 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: eureka
+  labels: 
+    name: eureka
+  #namespace: pcidata
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: eureka
+    spec:
+      containers:
+      - name: eureka
+        image: 192.168.247.211:5000/eureka:v1
+        ports:
+        - containerPort: 8761
