@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+    heritage: {{ .Release.Service | quote }}
+    release: {{ .Release.Name | quote }}
+    chart: "{{.Chart.Name}}-{{.Chart.Version}}"
+spec:
+  type: NodePort
+  ports:
+  - port: 8800
+    targetPort: 8800
+    nodePort: 30188
+  selector:
+    app: {{ .Values.app.name }}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    heritage: {{ .Release.Service | quote }}
+    release: {{ .Release.Name | quote }}
+    chart: "{{.Chart.Name}}-{{.Chart.Version}}"
+{{- with .Values.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+{{- if .Values.app.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.app.host}}
+    secretName: {{ .Values.app.tls}}
+{{- end }}
+  rules:
+  - host: {{ .Values.app.host}}
+    http:
+      paths:
+      - backend:
+          serviceName: {{ .Values.app.name }}
+          servicePort: 8800

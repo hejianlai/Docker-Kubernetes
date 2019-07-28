@@ -1,0 +1,58 @@
+#Tomcat
+server:
+  tomcat:
+    uri-encoding: UTF-8
+    max-threads: 30
+    min-spare-threads: 10
+  port: 8700
+  servlet:
+    context-path: /sscp-transport
+
+spring:
+#  profiles:
+#    active: dev  #**部署运行环境，dev:开发，test:测试，produce:生产
+#  application:
+#    name: sscp-transport
+  resources:
+    static-locations: ["/static/"]
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  kafka:
+    producer:
+      bootstrap-servers: kafka-test:9092
+      retries: 1
+      batch-size: 16384
+      buffer-memory: 33554432
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      topic: sscp-transport-req
+      acks: 1
+      linger: 1
+      replica-lag-time-max-ms: 10000
+      max-in-flight: 5
+    consumer:
+      bootstrap-servers: kafka-test:9092
+      client-id: sscp-transport-resp
+      group-id: sscp-transport-consumer-group
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+      auto-commit-interval: 1000
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      session-timeout: 6000
+      concurrency: 1
+      topic: sscp-transport-resp
+      poll-timeout: 10
+  emqtt:
+    broker: tcp://emqx-test-emqx-chart:1883
+    subTopic: SSCP/+
+    pubTopic: /GRK/
+    username: admin123
+    password: public123
+    client-id: sscp-transpost
+    max-in-flight: 1024
+    qos: 1
+
+swagger:
+  enable: true

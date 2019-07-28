@@ -1,0 +1,187 @@
+﻿#debug: true
+server:
+  port: 8800
+
+spring:
+  profiles:
+    active: test  #**部署运行环境，dev:开发，test:测试，produce:生产
+  application:
+    name: sscp-payment
+  redis:  #redis配置
+    database: 0
+    host: 47.244.5.51
+    port: 6379
+    password:
+    timeout: 20000
+      #cluster:
+      #nodes: 192.168.211.134:7000,192.168.211.134:7001
+    #max-redirects:
+    pool:
+      max-active: 8
+      max-idle: 8
+      max-wait: -1
+      min-idle: 0
+  session:
+    store-type: redis
+  resources:
+    static-locations: ["/static/"]
+  jackson:
+    date-format: dd/MM/yy HH:mm:ss
+    time-zone: GMT+8
+
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    #    url: jdbc:mysql://47.244.5.51:3306/transaction?serverTimezone=Hongkong&allowMultiQueries=true&useUnicode=true&characterEncoding=UTF-8&useSSL=false
+    url: jdbc:oracle:thin:@47.75.108.42:1521:hkmetro
+    username: paydb
+    password: Pcidata321
+    type: com.alibaba.druid.pool.DruidDataSource
+    #    druid:
+    #      initial-size: 10    # 初始化连接数
+    #      min-idle: 10        # 最小空闲连接
+    #      max-active: 100     # 最大活动链接
+    #      max-wait: 60000     # 最大等待时间(毫秒)
+    #      test-while-idle: true
+    #      test-on-borrow: false # 获取连接时测试是否可用
+    #      test-on-return: false
+    #      pool-prepared-statements: true
+    #      max-pool-prepared-statement-per-connection-size: 20
+    #      min-evictable-idle-time-millis: 300000
+    #      filter:
+    #        slf4j:
+    #          enabled: true
+    #      proxyFilters:
+    #        - com.mtr.sscp.filter.SqlLogFilter
+    initial-size: 10    # 初始化连接数
+    min-idle: 10        # 最小空闲连接
+    max-active: 100     # 最大活动链接
+    max-wait: 60000     # 最大等待时间(毫秒)
+    test-while-idle: true
+    test-on-borrow: false # 获取连接时测试是否可用
+    test-on-return: false
+    pool-prepared-statements: true
+    max-pool-prepared-statement-per-connection-size: 20
+    min-evictable-idle-time-millis: 300000
+    session:
+      store-type: redis
+    resources:
+      static-locations: ["/static/"]
+    jackson:
+      date-format: dd/MM/yy HH:mm:ss
+      time-zone: GMT+8
+    devtools:
+      restart:
+        #热部署生效
+        enabled: false
+
+
+
+configure:                          #专门用于加载外部配置文件使用
+  baseDir: 'classpath:/config'     #基本文件夹路径
+#  dbConfigPath: ${configure.baseDir}/db/databaseConfig.yml    #数据库配置文件路径
+#  springConfigPath: ${configure.baseDir}/applicationContext.xml    #applicationContext.xml配置文件路径
+
+fileConfig:
+  AppFile: 'D:/AppFile'
+  uploadTemp: '/web/temp'
+
+productMode: false
+
+reqUrlConfig:
+  webgate:
+    sendSmsUrl: 'XXXXXX'
+    signKey: 'OSSXXXXXX'
+
+ribbon:
+  ReadTimeout: 60000
+  ConnectTimeout: 60000
+
+feign:
+  hystrix:
+    enabled: true
+
+hystrix:
+  command:
+    default:
+      execution:
+        timeout:
+          enabled: false
+
+#logback:
+#  #非开发环境是否开启控制台日志
+#  enableConsoleLogWhenNotInDev: false
+#  #**日志文件存放目录，目录后面无需再加"/"。备注如果这项不配置，则不输出日志文件
+#  logFileDir: /fs01/log
+
+#jdbc操作日志
+log:
+  jdbc:
+    ps:
+      executableSql: true
+    rs:
+      header: true
+
+microService:
+  application:
+    sscp:
+      transaction: sscp-transaction
+
+#mybatis:
+#  config‐location: classpath:mybatis/mybatis‐config.xml 指定全局配置文件的位置
+#  mapper‐locations: classpath:mybatis/mapper/*.xml 指定sql映射文件的位置
+
+snowflake:
+  workerId: 31  #取值0-31   微服务里面的工作组  随机配置  workerId和datacenterId不要和其他微服务一样就可以了
+  datacenterId: 31  #取值0-31  标识微服务
+
+
+#    eureka.instance.prefer-ip-address=true
+#    eureka.instance.instance-id=${spring.cloud.client.ipAddress}:${server.port}
+
+# INFO ENDPOINT CONFIGURATION
+alipayKeyQuery:
+  taskInterval: 30
+
+info:
+  app:
+    name: $project.name$
+    description: $project.description$
+    version: $project.version$
+    encoding: $project.build.sourceEncoding$
+    java:
+      version: $java.version$
+
+#线程池
+threadPool:
+  #支付宝退款
+  alipayRefund:
+    #初始化线程数
+    initSum: 20
+    #最大线程数
+    maxSum: 500
+    #队列容量,建议和maxSum一样大小
+    capacity: 500
+  #支付宝退款
+  aliapyPay:
+    #支付宝退款
+    initSum: 20
+    #最大线程数
+    maxSum: 500
+    #队列容量,建议和maxSum一样大小
+    capacity: 500
+
+#定时任务
+timeTask:
+  #机构秘钥查询
+  keyQuery:
+    #间隔时间，单位：秒
+    interval: 1500
+  #支付--补扣
+  rePay:
+    #间隔时间，单位：秒
+    interval: 1500
+    #支付--补退款
+  reRefund:
+    #间隔时间，单位：秒
+    interval: 1500
+

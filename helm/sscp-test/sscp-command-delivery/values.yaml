@@ -1,0 +1,24 @@
+#tag对应官方相应的版本，不代表应用的官方原版镜像，可能有改动
+app:
+  name: sscp-command-delivery
+  namespace: sscp-test
+  image: 
+    repository: 172.31.182.143/test/sscp-command-delivery
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+  updateVersion: 1
+  JAVA_OPTS: -Xmx512m -Xms512m
+  resources:
+   limits:
+     cpu: 1000m
+     memory: 512Mi
+   requests:
+     cpu: 200m
+     memory: 512Mi
+
+ingress:
+  enabled: false
+  annotations:
+    # kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"

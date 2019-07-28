@@ -1,0 +1,95 @@
+
+druid:
+    url: jdbc:oracle:thin:@47.244.5.51:1521/xe
+    driverClassName: oracle.jdbc.OracleDriver
+    username: systemtestdb
+    password: pcidata_2019
+    initial-size: 10
+    max-active: 100
+    min-idle: 10
+    max-wait: 60000
+    test-on-borrow: true
+    time-between-eviction-runs-millis: 60000
+    min-evictable-idle-time-millis: 300000
+    validation-query: SELECT 1 FROM DUAL
+    test-While-Idle: true
+    test-on-return: false
+    pool-prepared-statements: false
+    max-pool-prepared-statement-per-connection-size: 20
+    filters: stat,wall,log4j2,config
+    connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000;config.decrypt=false
+    show-sql: true
+    ddl-auto: update
+    monitor:
+          enabled: enabled # 配置此属性Monitor才生效kyi
+          druidStatView: /druid/*
+          druidWebStatFilter: /*
+          allow: 219.230.50.107,127.0.0.1
+          deny: 219.230.50.108
+          login-username: admin
+          login-password: 123456
+          exclusions: '*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*'
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  redis:
+    database: 8
+#    host: 47.244.5.51  # k8s注释掉提交  原47.244.5.51 6379
+#    port: 6379         # k8s注释掉提交 新47.244.34.71 32379 需配哨兵,否则只有读权限
+    password:       # 密码（默认为空）
+    timeout: 20000   # 连接超时时长（毫秒）
+#    lettuce:
+#      pool:
+#        min-idle: 8
+#        max-active: 1000
+#        max-wait: -1ms
+#        max-idle: 16
+
+      #max-redirects:
+  jedis:
+    pool:
+      max-active: 200  # 连接池最大连接数（使用负值表示没有限制）
+      max-wait: -1    # 连接池最大阻塞等待时间（使用负值表示没有限制）
+      max-idle: 10      # 连接池中的最大空闲连接
+      min-idle: 5       # 连接池中的最小空闲连接
+  sentinel:
+    master: mymaster
+    nodes:
+    - redis-ha-dev-announce-0:26379
+    - redis-ha-dev-announce-1:26379
+    - redis-ha-dev-announce-2:26379
+
+  thymeleaf:   #配置静态资源前后缀
+    prefix: classpath:/templates/
+    suffix: .html
+  servlet:
+    multipart:
+      max-file-size: 100000  # 设置单个文件最大内存
+      max-request-size: 50000000  # 设置所有文件最大内存
+
+web:
+  upload-path: /logs/upLoadFile/       # 自定义文件上传路径/upLoadFile/  F:/bak/upLoadFile/
+
+mail:
+  smtp:
+    auth: true
+    port: 465
+    timeout: 5000
+  transport:
+    protocol: smtp
+  sent:
+    charset: UTF-8
+  is:
+    ssl: true
+  host: smtp.pcidata.cn
+  auth:
+    name: liuying@pcidata.cn
+    password: 753951jd!
+
+restClient:
+  antipass:
+    baseUrl: http://47.75.246.1:8100/sscp-antipass
+    offlineCheckIn: /grk/offlineCheckIn
+    offlineCheckOut: /grk/offlineCheckOut
+    tapIn: /grk/tapIn
+    tapOut: /grk/tapOut

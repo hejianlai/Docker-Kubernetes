@@ -1,0 +1,240 @@
+eureka:
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.cloud.client.ip-address}:${server.port}
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+#Tomcat
+server:
+  tomcat:
+    uri-encoding: UTF-8
+    max-threads: 30
+    min-spare-threads: 10
+  port: 8300
+  servlet:
+    context-path: /sscp-transaction
+
+spring:
+#  profiles:
+#    active: dev  #**部署运行环境，dev:开发，test:测试，produce:生产
+  redis:  #redis配置
+    database: 8
+#    host: redis-ha-announce-2
+#    port: 6379
+    password:
+    timeout: 20000
+#    cluster:
+#      #nodes: 192.168.211.134:7000,192.168.211.134:7001
+#      nodes:
+#      - 47.90.89.206:32379
+#      - 47.75.97.139:32379
+#      - 47.244.34.71:32379
+      #max-redirects:
+    jedis:
+      pool:
+        max-active: 200  # 连接池最大连接数（使用负值表示没有限制）
+        max-wait: -1ms    # 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-idle: 10      # 连接池中的最大空闲连接
+        min-idle: 5       # 连接池中的最小空闲连接
+    sentinel:
+      master: mymaster
+      nodes:
+#      - 10.244.1.39:6379
+#      - 10.244.2.44:6379
+#      - 47.90.89.206:32302
+#      - 47.75.97.139:32302
+#      - 47.244.34.71:32302
+      - redis-ha-test-announce-0:26379
+      - redis-ha-test-announce-1:26379
+      - redis-ha-test-announce-2:26379
+#      - redis-ha-dev.sscp-dev.svc.cluster.local:26379
+
+  klock:
+    address: redis://redis-ha-test-announce-0:26379,redis://redis-ha-test-announce-1:26379,redis://redis-ha-test-announce-2:26379
+#    address: redis://redis-ha-dev.sscp-dev.svc.cluster.local:26379
+    password:
+    database: 8
+    master-connection-pool-size: 10
+    master-connection-minimumIdle-size: 5
+    waitTime: 10
+    #leaseTime:
+    #cluster-server.node-addresses:
+
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+#    url: jdbc:mysql://47.244.5.51:3306/transaction?serverTimezone=Hongkong&allowMultiQueries=true&useUnicode=true&characterEncoding=UTF-8&useSSL=false
+    url: jdbc:oracle:thin:@47.75.108.42:1521:hkmetro
+    username: transactiondb2
+    password: Pcidata321
+#    druid:
+#      initial-size: 10    # 初始化连接数
+#      min-idle: 10        # 最小空闲连接
+#      max-active: 100     # 最大活动链接
+#      max-wait: 60000     # 最大等待时间(毫秒)
+#      test-while-idle: true
+#      test-on-borrow: false # 获取连接时测试是否可用
+#      test-on-return: false
+#      pool-prepared-statements: true
+#      max-pool-prepared-statement-per-connection-size: 20
+#      min-evictable-idle-time-millis: 300000
+#      filter:
+#        slf4j:
+#          enabled: true
+#      proxyFilters:
+#        - com.mtr.sscp.filter.SqlLogFilter
+    initial-size: 10    # 初始化连接数
+    min-idle: 10        # 最小空闲连接
+    max-active: 100     # 最大活动链接
+    max-wait: 60000     # 最大等待时间(毫秒)
+    test-while-idle: true
+    test-on-borrow: false # 获取连接时测试是否可用
+    test-on-return: false
+    pool-prepared-statements: true
+    max-pool-prepared-statement-per-connection-size: 20
+    min-evictable-idle-time-millis: 300000
+  session:
+    store-type: redis
+  resources:
+    static-locations: ["/static/"]
+  jackson:
+    date-format: dd/MM/yy HH:mm:ss
+    time-zone: GMT+8
+  devtools:
+    restart:
+      #热部署生效
+      enabled: false
+  #kafka
+  kafka:
+    bootstrap-servers: 47.244.188.35:9092
+    producer:
+      retries: 0
+      batch-size: 16384
+      buffer-memory: 33554432
+      linger: 1
+    consumer:
+      enable-auto-commit: false
+      auto-commit-interval: 100
+      group-id: transaction_group
+      session-timeout: 20000
+      auto-offset-reset: latest
+      concurrency: 10
+
+mybatis:
+  type-aliases-package: com.pci.sscp.entity
+  mapper-locations: classpath:sqlmap/transaction/*.xml
+#  驼峰命名规范，不加不能把tap_time映射为tapTime字段实体
+  configuration:
+    map-underscore-to-camel-case: true
+
+ribbon:
+  ReadTimeout: 60000
+  ConnectTimeout: 60000
+  httpclient:
+    enabled: false
+  okhttp:
+    enabled: true
+
+feign:
+  hystrix:
+    enabled: true
+
+hystrix:
+  command:
+    default:
+      execution:
+        timeout:
+          enabled: false
+
+#logback:
+#  #非开发环境是否开启控制台日志
+#  enableConsoleLogWhenNotInDev: false
+#  #**日志文件存放目录，目录后面无需再加"/"。备注如果这项不配置，则不输出日志文件
+#  logFileDir: /fs01/log
+
+#jdbc操作日志
+log:
+  jdbc:
+    ps:
+      executableSql: true
+    rs:
+      header: true
+
+# /swagger-ui.html swagger访问网址
+swagger:
+  enable: true
+
+sscp:
+  transaction:
+    workId: 1
+    datacenterId: 1
+    squadDay: 0230
+    #分钟 nak标志失效
+    nakTime: 5
+    #同站入站补录替换掉上次补录时间限制
+    rebuildLimit: 16
+    #重复进站时间 暂定2分钟
+    duplicateTime: 2
+    #单边超时时间 暂定155分钟
+    tapSOOTimeout: 155
+    #单边补录16分钟超时
+    tapS16Timeout: 16
+    #延迟扣费时间 定155分钟
+    tapDelayPayTime: 155
+    #同站限制进站时间
+    sameStationLimitTime: 30
+    #异站限制进站时间
+    differentStationLimitTime: 15
+    #超时同站配置费用，单位：毫
+    overTimeSameStationFare: 10
+    #延迟扣费线核心程池线程数量
+    corePoolSize: 8
+    #延迟扣费线程池保持存活时间
+    keepAliveTime: 3600
+    #延迟扣费线程池最大程池线程数量
+    maximumPoolSize: 30
+    #票价表导入横排数量
+    totalRow: 96
+    #票价表导入竖排数量
+    totalVertical: 93
+    #超时时间
+    maxTravelTime: 155
+    #超时费用
+    overTimecharge: 15
+    #尖沙咀尖东30分钟时间限制
+    tstAndEts30MinLimit: 30
+    #155分钟行程超时时间，暂定155分钟
+    journeyTimeout: 155
+    #tmo模式同站进出
+    tmo-same-station:
+      #成人
+      adult:
+        min-0-21: 38
+        min-21-155: 100
+      #小孩
+      child:
+        min-0-21: 19
+        min-21-155: 50
+      #老头
+      elder:
+        min-0-21: 15
+        min-21-155: 15
+      #extra
+      extra:
+        min-0-21: 0
+        min-21-155:
+      min-21: 21
+      min-155: 155
+    azure:
+      name-space: mtrdev-pci
+      event-hub-name: pcieventhub
+      sas-key-name: sas1
+      sas-key: llnpkkD6w3e5JSC+qQrmPpgMIeCUoJY7bqhgLOH4UlA=
+    #kafka发送topic
+    free-ticket: freeTicket
+    #单边记录扣费配置
+    configured-value: 0
+    mep-url: http://47.75.246.1:9300
+    #是否存报文
+    mep-whether-save-formdata: true
+    rebuild-timeout: 16
+

@@ -1,0 +1,177 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: sscp-virtualservice
+  namespace: sscp-test
+spec:
+  hosts:
+  - "api-test.pcidata.cn"
+  gateways:
+  - sscp-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /sscpuser
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        port:
+          number: 8200
+        host: sscp-passenger
+    corsPolicy:
+      allowOrigin:
+        - "*"
+      allowMethods:
+        - POST
+        - GET
+        - OPTIONS
+      allowHeaders:
+        - Access-token
+        - Content-Type
+      exposeHeaders:
+        - "*"
+      maxAge: "18s"
+      allowCredentials: true 
+  - match:
+    - uri:
+        prefix: /transaction
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        port:
+          number: 8300
+        host: sscp-transaction
+    corsPolicy:
+      allowOrigin:
+        - "*"
+      allowMethods:
+        - POST
+        - GET
+        - OPTIONS
+      allowHeaders:
+        - Access-token
+        - Content-Type
+      exposeHeaders:
+        - "*"
+      maxAge: "18s"
+      allowCredentials: true 
+  - match:
+    - uri:
+        prefix: /device
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        port:
+          number: 8500
+        host: sscp-device
+    corsPolicy:
+      allowOrigin:
+        - "*"
+      allowMethods:
+        - POST
+        - GET
+        - OPTIONS
+      allowHeaders:
+        - Access-token
+        - Content-Type
+      exposeHeaders:
+        - "*"
+      maxAge: "18s"
+      allowCredentials: true 
+  - match:
+    - uri:
+        prefix: /notify
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        port:
+          number: 8600
+        host: sscp-notice
+    corsPolicy:
+      allowOrigin:
+        - "*"
+      allowMethods:
+        - POST
+        - GET
+        - OPTIONS
+      allowHeaders:
+        - Access-token
+        - Content-Type
+      exposeHeaders:
+        - "*"
+      maxAge: "18s"
+      allowCredentials: true 
+  - match:
+    - uri:
+        prefix: /transport
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        port:
+          number: 8700
+        host: sscp-transport
+    corsPolicy:
+      allowOrigin:
+        - "*"
+      allowMethods:
+        - POST
+        - GET
+        - OPTIONS
+      allowHeaders:
+        - Access-token
+        - Content-Type
+      exposeHeaders:
+        - "*"
+      maxAge: "18s"
+      allowCredentials: true 
+  - match:
+    - uri:
+        prefix: /pay
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        port:
+          number: 8800
+        host: sscp-payment
+    corsPolicy:
+      allowOrigin:
+        - "*"
+      allowMethods:
+        - POST
+        - GET
+        - OPTIONS
+      allowHeaders:
+        - Access-token
+        - Content-Type
+      exposeHeaders:
+        - "*"
+      maxAge: "18s"
+      allowCredentials: true 
+  - match:
+    - uri:
+        prefix: /admin
+    route:
+    - destination:
+        port:
+          number: 8900
+        host: sscp-admin
+    corsPolicy:
+      allowOrigin:
+        - "*"
+      allowMethods:
+        - POST
+        - GET
+        - OPTIONS
+      allowHeaders:
+      - access-token
+      - X-Requested-With
+      exposeHeaders:
+        - "*"
+      maxAge: "18s"
+      allowCredentials: true 

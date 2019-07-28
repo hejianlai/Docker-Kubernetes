@@ -1,0 +1,11 @@
+appVersion: 7.2.0
+description: Official Elastic helm chart for Filebeat
+home: https://github.com/elastic/helm-charts
+icon: https://helm.elastic.co/icons/filebeat.png
+maintainers:
+- email: helm-charts@elastic.co
+  name: Elastic
+name: filebeat
+sources:
+- https://github.com/elastic/beats
+version: 7.2.0

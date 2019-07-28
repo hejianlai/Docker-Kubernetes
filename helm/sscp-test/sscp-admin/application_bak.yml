@@ -1,0 +1,121 @@
+server:
+  tomcat:
+    uri-encoding: UTF-8
+    max-threads: 30
+    min-spare-threads: 10
+  port: 8900
+  servlet:
+    context-path: /admin
+
+mybatis:
+  type-aliases-package: com.pci.web.login.entity
+  mapper-locations: classpath:sqlmap/*/*.xml
+
+spring:
+#  cloud:
+#    stream:
+#      kafka:
+#        binder:
+#          brokers: 47.52.25.80:9092
+
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+#   url: jdbc:mysql://47.244.5.51:3306/transaction?serverTimezone=Hongkong&allowMultiQueries=true&useUnicode=true&characterEncoding=UTF-8&useSSL=false
+    url: jdbc:oracle:thin:@47.244.5.51:1521:xe
+    username: systemadmindb
+    password: pcidata_2019
+    type: com.alibaba.druid.pool.DruidDataSource
+    initial-size: 10    # 初始化连接数
+    min-idle: 10        # 最小空闲连接
+    max-active: 100     # 最大活动链接
+    max-wait: 60000     # 最大等待时间(毫秒)
+    test-while-idle: true
+    test-on-borrow: true # 获取连接时测试是否可用
+    test-on-return: false
+    pool-prepared-statements: true
+    max-pool-prepared-statement-per-connection-size: 20
+    min-evictable-idle-time-millis: 300000
+    validation-query: select 1 from dual
+
+  redis:  #redis配置
+    database: 7
+    host: 47.244.5.51
+#    host: 183.3.136.95
+#    host: redis-ha
+    port: 6379
+#    port: 32379
+    password:
+    timeout: 20000
+    jedis:
+      pool:
+        max-active: 200  # 连接池最大连接数（使用负值表示没有限制）
+        max-wait: -1ms    # 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-idle: 10      # 连接池中的最大空闲连接
+        min-idle: 5       # 连接池中的最小空闲连接
+#    sentinel:
+#      master: mymaster
+#      nodes:
+#      - redis-ha-announce-0:26379
+#      - redis-ha-announce-1:26379
+#      - redis-ha-announce-2:26379
+  session:
+    store-type: redis
+  resources:
+    static-locations: ["/static/"]
+  devtools:
+    restart:
+      #热部署生效
+      enabled: false
+
+#是否加密数据库用户及密码
+needEncrypt: false
+#加密方式采用AES。此处配置私钥。
+encryptKey: Z0NwrNPHghgXHN0CqjLS58YCjhMcBfeR33RWs7L
+
+fileConfig:
+  AppFile: 'D:/AppFile'
+  uploadTemp: '/web/temp'
+
+productMode: false
+
+reqUrlConfig:
+  webgate:
+    sendSmsUrl: 'XXXXXX'
+    signKey: 'OSSXXXXXX'
+
+ribbon:
+  ReadTimeout: 60000
+  ConnectTimeout: 60000
+
+feign:
+  hystrix:
+    enabled: true
+
+hystrix:
+  command:
+    default:
+      execution:
+        timeout:
+          enabled: false
+
+#jdbc操作日志
+log:
+  jdbc:
+    ps:
+      executableSql: true
+    rs:
+      header: true
+
+#swagger-ui.html swagger访问网址
+swagger:
+   enable: true
+
+#自定义参数
+emailService:
+  emailHost: smtp.163.com #发件服务器
+  emailAddress: 498698dunk@163.com #发件人邮箱地址
+  emailPwd: 498698amigo #发件人邮箱密码
+  failureTimer: 3 #验证码失效时间
+#  emailHost: smtp.pcidata.cn #发件服务器
+#  emailAddress: apiservice@pcidata.cn #发件人邮箱地址
+#  emailPwd: PCI.201888 #发件人邮箱密码

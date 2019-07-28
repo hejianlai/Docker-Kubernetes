@@ -1,0 +1,92 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: sscp-virtualservice
+spec:
+  hosts:
+  - "api.pcidata.com"
+  gateways:
+  - sscp-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /sscpuser
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        port:
+          number: 8200
+        host: sscp-passenger-svc
+  - match:
+    - uri:
+        prefix: /transaction
+    rewrite:
+      uri: /sscp-transaction
+    route:
+    - destination:
+        port:
+          number: 8300
+        host: sscp-transaction-svc
+  - match:
+    - uri:
+        prefix: /device
+    rewrite:
+      uri: /sscp-device
+    route:
+    - destination:
+        port:
+          number: 8500
+        host: sscp-device-svc
+  - match:
+    - uri:
+        prefix: /notify
+    rewrite:
+      uri: /sscp-notice
+    route:
+    - destination:
+        port:
+          number: 8600
+        host: sscp-notice-svc
+  - match:
+    - uri:
+        prefix: /transport
+    rewrite:
+      uri: /sscp-transport
+    route:
+    - destination:
+        port:
+          number: 8700
+        host: sscp-transport-svc
+  - match:
+    - uri:
+        prefix: /pay
+    rewrite:
+      uri: /sscp-payment
+    route:
+    - destination:
+        port:
+          number: 8800
+        host: sscp-payment-svc
+  - match:
+    - uri:
+        prefix: /admin
+    rewrite:
+      uri: /sscp-admin
+    route:
+    - destination:
+        port:
+          number: 30089
+        host: 1974374hx1.51mypc.cn
+    corsPolicy:
+      allowOrigin:
+        - "*"
+      allowMethods:
+        - GET
+        - POST
+      allowHeaders:
+        - "*"
+      exposeHeaders:
+        - "*"
+      maxAge: "300s"
+      allowCredentials: true 

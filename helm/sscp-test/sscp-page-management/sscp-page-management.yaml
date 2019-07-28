@@ -1,0 +1,58 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: sscp-page-management
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      project: sscp
+      app: sscp-page-management
+  template:
+    metadata:
+      labels:
+        project: sscp
+        app: sscp-page-management
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: sscp-page-management  
+        image: 172.31.182.143/k8s/sscp-page-management:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9100
+          name: zuul
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 0.5
+            memory: 256Mi
+          limits:
+            cpu: 1
+            memory: 1Gi
+        resources:
+          requests:
+            cpu: 0.5
+            memory: 256Mi
+          limits:
+            cpu: 1
+            memory: 1Gi
+      #  livenessProbe:
+      #    httpGet:
+      #      path: /actuator/info
+      #      port: 9100
+      #    initialDelaySeconds: 6
+      #    timeoutSeconds: 20
+        volumeMounts:
+        - name: sscp-page-management 
+          mountPath: "/deployments/config_page_management"
+#          subPath: application.yml
+      volumes:
+      - name: sscp-page-management 
+        configMap:
+          name: sscp-page-management 
+          items: 
+          - key: application.yml
+            path: application.yml

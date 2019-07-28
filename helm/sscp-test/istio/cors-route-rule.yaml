@@ -1,0 +1,18 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: RouteRule
+metadata:
+  name: cors
+spec:
+  destination:
+    name: boss-gw
+  corsPolicy:
+    allowOrigin:
+      - "*"
+    allowMethods:
+      - "*"
+    allowHeaders:
+      - "*"
+#    exposeHeaders:
+#      - x-custom-header
+    maxAge: 18s
+    allowCredentials: true

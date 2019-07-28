@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    heritage: {{ .Release.Service | quote }}
+    release: {{ .Release.Name | quote }}
+    chart: "{{.Chart.Name}}-{{.Chart.Version}}"
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+      project: sscp
+  replicas: {{ .Values.app.replicas }}
+  revisionHistoryLimit: 3
+  {{ template "api.strategy" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+        project: sscp
+      annotations:
+        update/version : "{{ .Values.app.updateVersion }}"
+        sidecar.istio.io/inject: "true"
+    spec:
+      terminationGracePeriodSeconds: 100 #k8s将会给应用发送SIGTERM信号，可以用来正确、优雅地关闭应用,默认为30秒
+      containers:
+      - name: {{ .Values.app.name }}
+        image: "{{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}"
+        imagePullPolicy: {{ .Values.app.image.pullPolicy }} #设置总是从镜像仓库中拉取镜像
+        ports:
+        - containerPort: 9101
+        resources:
+          requests:
+            cpu: 0.5
+            memory: 256Mi
+          limits:
+            cpu: 1
+            memory: 1Gi
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8181
+          initialDelaySeconds: 200
+          timeoutSeconds: 20
+          successThreshold: 1
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8181
+            scheme: HTTP
+          initialDelaySeconds: 100
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 5
+        volumeMounts: 
+        - name: {{ .Values.app.name }}
+          mountPath: "/deployments/config"
+      volumes: 
+      - name: {{ .Values.app.name }}
+        configMap:
+          name: {{ .Values.app.name }}
+          items: 
+          - key: application.yml
+            path: application.yml
+      imagePullSecrets:
+      - name: regcred
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}

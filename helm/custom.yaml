@@ -1,0 +1,8 @@
+env:
+  open:
+    #开启api
+    DISABLE_API: false
+    ALLOW_OVERWRITE: true
+  secret:
+    BASIC_AUTH_USER: myuser
+    BASIC_AUTH_PASS: mypass

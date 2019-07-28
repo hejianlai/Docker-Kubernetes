@@ -1,0 +1,17 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: boss-gw
+spec:
+  selector:
+    istio: ingressgateway # use Istio default gateway implementation
+  #sessionAffinity: ClientIP
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+      nodePort: 30036
+    hosts:
+    #- "boss.pcidata.com"
+    - "*"

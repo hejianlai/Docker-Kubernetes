@@ -1,0 +1,20 @@
+apiVersion: config.istio.io/v1alpha3
+kind: RouteRule
+metadata:
+  name: cors
+spec:
+  destination:
+    name: boss
+  corsPolicy:
+    allowOrigin:
+      - http://boss.pcidata.com
+    allowMethods:
+      - POST
+      - GET
+      - OPTIONS
+    allowHeaders:
+      - content-type
+    exposeHeaders:
+      - x-custom-header
+    maxAge: 300s
+    allowCredentials: true

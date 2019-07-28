@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+   name: sscp-admin
+spec:
+   host: sscp-admin-svc
+#   trafficPolicy:
+#      loadBalancer:
+#       consistentHash:
+#         httpCookie:
+#           name: sessionId
+#           ttl: 0s
+#

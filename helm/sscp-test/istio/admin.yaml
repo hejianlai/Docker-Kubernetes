@@ -1,0 +1,60 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: admin-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "api.pcidata.com"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: admin
+spec:
+  hosts:
+  - "api.pcidata.com"
+  gateways:
+  - admin-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /device
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: sscp-device-svc
+        port:
+          number: 8500
+  - match:
+    - uri:
+        #prefix: /sscp-admin
+        prefix: /admin
+    #rewrite:
+      #uri: /sscp-admin
+    route:
+    - destination:
+        host: sscp-admin-svc
+        port:
+          number: 8900
+  corsPolicy:
+    allowOrigin:
+      - "*"
+    allowMethods:
+      - POST
+      - GET
+      - OPTIONS
+    allowHeaders:
+      - access-token
+      - X-Requested-With
+    exposeHeaders:
+      - "*"
+    maxAge: "18s"
+    allowCredentials: true 
