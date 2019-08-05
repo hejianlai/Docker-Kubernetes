@@ -1,5 +1,0 @@
-apiVersion: v1
-appVersion: 1.0.0
-description: 防复制系统
-name: sscp-antipass
-version: 1.0.0

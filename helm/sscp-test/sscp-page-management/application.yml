@@ -1,6 +1,0 @@
-server:
-  tomcat:
-    uri-encoding: UTF-8
-    max-threads: 30
-    min-spare-threads: 10
-  port: 9100

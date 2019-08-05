@@ -1,5 +1,0 @@
-apiVersion: v1
-appVersion: 1.0.0
-description: 设备系统
-name: sscp-device
-version: 1.0.0

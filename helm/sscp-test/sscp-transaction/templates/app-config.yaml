@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
- name: {{ .Values.app.name }}
- namespace: {{ .Values.app.namespace }}
-data:
-{{ (.Files.Glob "application.yml").AsConfig | indent 2 }}
