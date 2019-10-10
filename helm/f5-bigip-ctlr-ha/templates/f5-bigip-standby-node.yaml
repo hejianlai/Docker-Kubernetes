@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Node
+metadata:
+  name: bigip-standby
+  annotations:
+    # Provide the MAC address of the BIG-IP VXLAN tunnel
+    flannel.alpha.coreos.com/backend-data: '{"VtepMAC":"{{ .Values.standby.node.mac }}"}'
+    flannel.alpha.coreos.com/backend-type: "vxlan"
+    flannel.alpha.coreos.com/kube-subnet-manager: "true"
+    # Provide the IP address you assigned as the BIG-IP VTEP
+    flannel.alpha.coreos.com/public-ip: {{ .Values.standby.node.public_ip }}
+spec:
+  # Define the flannel subnet you want to assign to the BIG-IP device.
+  # Be sure this subnet does not collide with any other Nodes' subnets.
+  podCIDR: {{ .Values.standby.node.podcidr }}

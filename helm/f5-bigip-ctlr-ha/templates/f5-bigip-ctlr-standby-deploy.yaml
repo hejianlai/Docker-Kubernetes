@@ -1,0 +1,73 @@
+{{- if or (not .Values.standby.args.bigip_url) (not .Values.standby.args.bigip_partition) }}
+{{/*
+Generate errors for missing required values.
+*/}}
+{{- else -}}
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "f5-bigip-ctlr.fullname" . }}-standby
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ template "f5-bigip-ctlr.name" . }}-standby
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{ template "f5-bigip-ctlr.name" . }}-standby
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.serviceaccount }}
+      containers:
+      - name: {{ template "f5-bigip-ctlr.name" . }}
+        image: "{{ .Values.image.user }}/{{ .Values.image.repo }}:{{ .Values.image.tag }}"
+{{- if .Values.secrets_env }}
+        env:
+          - name: BIGIP_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.bigip_login_secret }}
+                key: username
+          - name: BIGIP_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.bigip_login_secret }}
+                key: password
+{{ else }}
+        volumeMounts:
+        - name: bigip-creds
+          mountPath: "/tmp/creds"
+          readOnly: true
+{{- end }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - /app/bin/k8s-bigip-ctlr
+        args:
+{{- if .Values.secrets_env }}
+        - --bigip-username
+        - $(BIGIP_USERNAME)
+        - --bigip-password
+        - $(BIGIP_PASSWORD)
+{{ else }}
+        - --credentials-directory
+        - /tmp/creds
+{{- end }}
+        {{- range $key, $value := .Values.standby.args }}
+        - --{{ $key | replace "_" "-"}}
+        - {{ $value | quote }}
+        {{- end }}
+{{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecrets }} 
+{{- end }}
+{{- if not .Values.secret_env }}
+      volumes:
+      - name: bigip-creds
+        secret:
+           secretName: {{ .Values.bigip_login_secret }}
+{{- end }}
+{{- end }}
