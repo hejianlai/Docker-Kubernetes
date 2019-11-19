@@ -1,0 +1,50 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: istio-resources
+  labels:
+    app: prometheus-operator
+    release: prometheus-operator
+  namespace: monitoring
+spec:
+  groups:
+  - name: Istio_application
+    rules:
+    - alert: Istio_Application_MemUsage
+      annotations:
+        message: Istio Application Memory >70%
+        runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeusagecritical
+      expr: |-
+        container_memory_rss{container_name=~"istio.*",pod_name!=""}/container_spec_memory_limit_bytes{container_name=~"istio.*",pod_name!=""} >70
+        #sum(container_memory_usage_bytes{pod_name=~"kafka.*"}) / 1024^3 >  1
+      for: 1m
+      labels:
+        severity: warning
+    - alert: Istio_Application_CpuUsage
+      annotations:
+        message: Istio Application CpuUsage >80%
+        runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeusagecritical
+      expr: |-
+        (sum(rate(container_cpu_usage_seconds_total{container_name=~"istio.*",pod_name!=""}[1m])) by(cluster,namespace,container_name,pod_name))/(sum(container_spec_cpu_quota{container_name=~"istio.*",pod_name!=""}) by(cluster,namespace,container_name,pod_name) /100000)*100 >80
+      for: 1m
+      labels:
+        severity: warning
+    - alert: Istio_Application_MemUsage
+      annotations:
+        message: Istio Application Memory >90%
+        runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeusagecritical
+      expr: |-
+        container_memory_rss{container_name=~"istio.*",pod_name!=""}/container_spec_memory_limit_bytes{container_name=~"istio.*",pod_name!=""} >90
+        #sum(container_memory_usage_bytes{pod_name=~"kafka.*"}) / 1024^3 >  1
+      for: 1m
+      labels:
+        severity: critical
+    - alert: Istio_Application_CpuUsage
+      annotations:
+        message: Istio Application CpuUsage >90%
+        runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeusagecritical
+      expr: |-
+        (sum(rate(container_cpu_usage_seconds_total{container_name=~"istio.*",pod_name!=""}[1m])) by(cluster,namespace,container_name,pod_name))/(sum(container_spec_cpu_quota{container_name=~"istio.*",pod_name!=""}) by(cluster,namespace,container_name,pod_name) /100000)*100 >90      
+      for: 1m
+      labels:
+        severity: critical

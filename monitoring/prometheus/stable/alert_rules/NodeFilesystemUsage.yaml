@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kafka-resources
+  labels:
+    app: prometheus-operator
+    release: prometheus-operator
+  namespace: monitoring
+spec:
+  groups:
+  - name: node
+    rules:
+    - alert: NodeFilesystemUsage
+      expr: |-
+       (node_filesystem_size_bytes{device="rootfs"} - node_filesystem_free_bytes{device="rootfs"}) / node_filesystem_size_bytes{device="rootfs"} * 100 > 60
+      for: 1m
+      labels:
+        filesystem: node
+      annotations:
+        summary: "{{$labels.instance}}: High Filesystem usage detected"
+        description: "{{$labels.instance}}: Filesystem usage is above 10% (current value is: {{ $value }}"
+

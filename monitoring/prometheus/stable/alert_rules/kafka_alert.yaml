@@ -1,0 +1,60 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kafka-resources
+  labels:
+    app: prometheus-operator
+    release: prometheus-operator
+  namespace: monitoring
+spec:
+  groups:
+  - name: kafka
+    rules:
+    - alert: KafkaMemUsage 
+      annotations:
+        message: Kafka MemoryUsage >70%
+        runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeusagecritical
+      expr: |-
+        container_memory_rss{container_name=~"kafka.*",pod_name!=""}/container_spec_memory_limit_bytes{container_name=~"kafka.*",pod_name!=""} >70
+      for: 1m
+      labels:
+        app: kafka
+        severity: warning
+    - alert: KafkaCpuUsage
+      annotations:
+        message: Kafka CpuUsage >80% 
+        runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeusagecritical
+      expr: |-
+        (sum(rate(container_cpu_usage_seconds_total{container_name=~"kafka.*",pod_name!=""}[1m])) by(cluster,namespace,container_name,pod_name))/(sum(container_spec_cpu_quota{container_name!="",pod_name!=""}) by(cluster,namespace,container_name,pod_name) /100000)*100 >80
+      for: 1m
+      labels:
+        app: kafka
+        severity: warning
+    - alert: KafkaMemUsage 
+      annotations:
+        message: Kafka MemoryUsage >90%
+        runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeusagecritical
+      expr: |-
+        container_memory_rss{container_name=~"kafka.*",pod_name!=""}/container_spec_memory_limit_bytes{container_name=~"kafka.*",pod_name!=""} >90
+      for: 1m
+      labels:
+        app: kafka
+        severity: critical
+    - alert: KafkaCpuUsage
+      annotations:
+        message: Kafka CpuUsage >90% 
+        runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeusagecritical
+      expr: |-
+        (sum(rate(container_cpu_usage_seconds_total{container_name=~"kafka.*",pod_name!=""}[1m])) by(cluster,namespace,container_name,pod_name))/(sum(container_spec_cpu_quota{container_name!="",pod_name!=""}) by(cluster,namespace,container_name,pod_name) /100000)*100 >90
+      for: 1m
+      labels:
+        app: kafka
+        severity: critical
+    - alert: KafkaConsumersGroup
+      expr: sum(kafka_consumergroup_lag) by (consumergroup) > 50
+      for: 5m
+      labels:
+        severity: error
+      annotations:
+        summary: "Kafka consumers group (instance {{ $labels.instance }})"
+        description: "Kafka consumers group\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"

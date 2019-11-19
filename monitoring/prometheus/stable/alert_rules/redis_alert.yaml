@@ -1,0 +1,28 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: redis-resources
+  labels:
+    app: prometheus-operator
+    release: prometheus-operator
+  namespace: monitoring
+spec:
+  groups:
+  - name: redis
+    rules:
+    - alert: RedisDown
+      expr: redis_up == 0
+      for: 5m
+      labels:
+        severity: error
+      annotations:
+        summary: "Redis down (instance {{ $labels.instance }})"
+        description: "Redis instance is down\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+    - alert: OutOfMemory
+      expr: redis_memory_used_bytes / redis_total_system_memory_bytes * 100 > 50
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Out of memory (instance {{ $labels.instance }})"
+        description: "Redis is running out of memory (> 90%)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"

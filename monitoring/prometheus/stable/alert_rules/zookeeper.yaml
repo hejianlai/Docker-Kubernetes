@@ -1,0 +1,36 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: zookeeper-resources
+  labels:
+    app: prometheus-operator
+    release: prometheus-operator
+  namespace: monitoring
+spec:
+  groups:
+  - name: zookeeper
+    rules:
+    - alert: zookeeperConnections
+      expr: zk_num_alive_connections{app="zookeeper"}==0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Zookeeper down (instance {{ $labels.instance }})"
+        description: "Zookeeper instance is down\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+    - alert: zookeeperLeader
+      expr: zk_server_state{app="zookeeper",state="leader"}==0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Zookeeper not leader (instance {{ $labels.instance }})"
+        description: "Zookeeper not leader n\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+    - alert: zookeeper
+      expr: zk_packets_sent{app="zookeeper"}==0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Zookeeper is null packets sent (instance {{ $labels.instance }})"
+        description: "Zookeeper is null packets sent \n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"

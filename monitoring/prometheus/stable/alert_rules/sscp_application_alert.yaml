@@ -1,0 +1,46 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sscp-resources
+  labels:
+    app: prometheus-operator
+    release: prometheus-operator
+  namespace: monitoring
+spec:
+  groups:
+  - name: sscp_application
+    rules:
+    - alert: Application_MemUsage
+      annotations:
+        message: Application Memory >70%
+      expr: |-
+        container_memory_rss{container_name=~"sscp.*",pod_name!=""}/container_spec_memory_limit_bytes{container_name=~"sscp.*",pod_name!=""} >10
+        #sum(container_memory_usage_bytes{pod_name=~"kafka.*"}) / 1024^3 >  1
+      for: 1m
+      labels:
+        severity: warning
+    - alert: Application_CpuUsage
+      annotations:
+        message: Application CpuUsage >80%
+      expr: |-
+        (sum(rate(container_cpu_usage_seconds_total{container_name=~"sscp.*",pod_name!=""}[1m])) by(cluster,namespace,container_name,pod_name))/(sum(container_spec_cpu_quota{container_name=~"sscp.*",pod_name!=""}) by(cluster,namespace,container_name,pod_name) /100000)*100 >80
+      for: 1m
+      labels:
+        severity: warning
+    - alert: Application_MemUsage
+      annotations:
+        message: Application Memory >90%
+      expr: |-
+        container_memory_rss{container_name=~"sscp.*",pod_name!=""}/container_spec_memory_limit_bytes{container_name=~"sscp.*",pod_name!=""} >90
+        #sum(container_memory_usage_bytes{pod_name=~"kafka.*"}) / 1024^3 >  1
+      for: 1m
+      labels:
+        severity: critical
+    - alert: Application_CpuUsage
+      annotations:
+        message: Application CpuUsage >90%
+      expr: |-
+        (sum(rate(container_cpu_usage_seconds_total{container_name=~"sscp.*",pod_name!=""}[1m])) by(cluster,namespace,container_name,pod_name))/(sum(container_spec_cpu_quota{container_name=~"sscp.*",pod_name!=""}) by(cluster,namespace,container_name,pod_name) /100000)*100 >90
+      for: 1m
+      labels:
+        severity: critical

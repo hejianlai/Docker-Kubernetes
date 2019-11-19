@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: sscp-transaction
+    release: prometheus-operator
+  name: springboot
+  namespace: monitoring
+spec:
+  endpoints:
+  - interval: 15s
+    path: /actuator/prometheus
+    port: health
+    scheme: http
+  namespaceSelector:
+    any: true
+#    matchNames:
+#    - sscp-dev
+  selector:
+    matchLabels:
+      app: sscp-transaction
+#      release: sscp

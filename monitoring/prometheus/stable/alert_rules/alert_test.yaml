@@ -1,0 +1,44 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: prometheus-operator-0226-lisai-grafana
+  labels:
+    app: prometheus-operator
+    release: prometheus-operator
+  namespace: monitoring
+spec:
+  groups:
+  - name: kubernetes-0226-lisai
+    rules:
+    - alert: grafana mem
+      annotations:
+        message: grafana mem big
+        runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeusagecritical
+      expr: |-
+        sum(container_memory_usage_bytes{namespace="loki",pod_name=~"loki.*"}) / 1024^3 >  1
+      for: 1m
+      labels:
+        namespace: loki
+        app: app1
+    - alert: timetimetime
+      annotations:
+        message: time big
+        runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeusagecritical
+      generatorURL: "http://prometheus.test.cloud.idc.com"
+      expr: |-
+        sum(container_memory_usage_bytes{namespace="monitoring",pod_name=~"prometheus.*"}) / 1024^3 >  10
+      for: 1m
+      labels:
+        namespace: monitoring
+        app: app2
+    - alert: timetimetime
+      annotations:
+        message: time big
+        runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeusagecritical
+      generatorURL: "http://prometheus.test.cloud.idc.com"
+      expr: |-
+        sum(container_memory_usage_bytes{namespace="monitoring",pod_name=~"prometheus.*"}) / 1024^3 >  10
+      for: 1m
+      labels:
+        namespace: monitoring
+        app: app2
