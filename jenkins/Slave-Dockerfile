@@ -1,0 +1,53 @@
+FROM centos:7.6.1810
+
+ENV TIMEZONE=Asia/Shanghai \
+    LANG=zh_CN.UTF-8
+
+COPY CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo
+COPY docker-ce.repo /etc/yum.repos.d/docker-ce.repo
+RUN mkdir -p /usr/share/jenkins \
+    && mkdir -p /root/.kube \
+    && yum install -y docker-ce git sshpass \
+    && yum install kde-l10n-Chinese -y \
+    && yum install glibc-common -y \
+    && localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+
+ADD  jdk1.8.0_111.tar.gz /usr/local/
+COPY config-test /root/.kube/config
+COPY maven3.5 /usr/local/maven3.5
+COPY jenkins-agent /usr/local/bin/jenkins-slave
+COPY remoting-4.9.jar /usr/share/jenkins/agent.jar
+COPY gradle-4.4.1  /usr/local/gradle-4.4.1
+COPY sonar-scanner /usr/local/sonar-scanner
+COPY kubectl /usr/local/bin/kubectl
+COPY helm /usr/local/bin/helm
+
+
+RUN chmod 755 /usr/share/jenkins/agent.jar \
+        && chmod +x /usr/local/bin/jenkins-slave
+
+USER root
+
+WORKDIR /home/jenkins
+
+ENV PATH=/bin:/usr/local/bin:$PATH
+ENV PATH=$PATH:/usr/local/sonar-scanner/bin
+ENV JAVA_HOME=/usr/local/jdk1.8.0_111/
+ENV PATH=$JAVA_HOME/bin:$PATH
+ENV CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar
+ENV GRADLE_HOME=/usr/local/gradle-4.4.1
+ENV PATH=${JAVA_HOME}/bin:${JRE_HOME}/bin:${GRADLE_HOME}/bin:${JAVA_HOME}:${PATH}
+ENV MAVEN_HOME=/usr/local/maven3.5
+ENV PATH=$JAVA_HOME/bin:$JAVA_HOME/jre/bin:$MAVEN_HOME/bin:$PATH
+ENV NODE_HOME=/usr/local/nodejs
+ENV PATH=$PATH:$NODE_HOME/bin
+ENV PATH=~/.npm-global/bin:$PATH
+ENV PATH=$PATH:$HOME/dotnet
+ENV PATH="$PATH:$HOME/.dotnet/tools"
+ENV PATH=/usr/local/safe-rm:/bin:/usr/local/bin:$PATH
+
+
+ENV DOTNET_CLI_HOME=/usr/share/dotnet/sdk/2.1.500/
+
+
+ENTRYPOINT ["jenkins-slave"]
