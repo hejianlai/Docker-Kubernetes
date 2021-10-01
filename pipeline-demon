@@ -1,0 +1,153 @@
+
+        def Image="harbor.xxx.cn/ewms/api-prod"
+        def newImage="harbor.xxx.cn/app/api-prod:$BUILD_NUMBER"
+        def sonarq_statue=true
+        pipeline {
+            agent any
+
+            triggers {
+                GenericTrigger(
+                    genericVariables: [
+                        [key: 'user_username', value: '$.user.username', defaultValue: '$.user_username', expressionType: 'JSONPath'],
+                        [key: 'ref', value: '$.object_attributes.target_branch', defaultValue: 'Null', expressionType: 'JSONPath'],
+                                    
+                    ],
+                    token: 'app-api-back-prod' ,
+                    causeString: ' Triggered on gitlab webhook: ${user_username}' ,
+                    printContributedVariables: true,
+                    printPostContent: true,
+                    silentResponse: false,
+                    regexpFilterText: '$ref',
+                    regexpFilterExpression: '^(refs/heads/)?master$'
+                )
+            }
+
+                stages {
+                    stage('代码更新') {
+                        steps {
+                            git credentialsId: 'jenkins',branch: "master",  url: "http://gitlab.xxx.cn/app/wms-api.git"
+                        }
+                    }
+        
+                    stage('打包后端') {
+                        steps {
+                            sh """
+                                cd ./.
+                                if [[ "$JOB_NAME"  == "scm-supplieropen-back-dev" || "$JOB_NAME"  == "scm-supplierapp-back-dev" || "$JOB_NAME"  == "scm-supplieropen-back-prod" || "$JOB_NAME"  == "scm-supplierapp-back-prod" ]]
+                                then
+                                    cd -
+                                fi
+                                source /etc/profile
+                                mvn clean compile
+                                mvn -B package -am -amd -DskipTests
+                              """
+                        }
+                    }
+    stage("构建&发布&代码扫描") {
+        parallel {
+            stage("构建镜像&发布") {
+                stages {
+                    stage('创建镜像') {
+                        steps {
+                            sh """
+                            cd ././own-wms
+                            set +e
+                            cp -f Dockerfile target/ || cp -f Dockerfile .
+                            cat target/Dockerfile | grep 'Xmx'  || cat Dockerfile | grep 'Xmx'  &&  echo Xmx || exit 1 
+                            mv -f target/*.jar target/own-wms-1.0.jar  || mv -f ./*.jar ./own-wms-1.0.jar
+                            docker build -t harbor.xxx.cn/app/api-prod:$BUILD_NUMBER target/ || docker build -t harbor.xxx.cn/app/api-prod:$BUILD_NUMBER .
+                            """
+                        }
+                    }
+                    stage('推送镜像到仓库') {
+                        steps {
+                            sh """
+                                docker push harbor.xxx.cn/app/api-prod:$BUILD_NUMBER
+                                docker rmi harbor.xxx.cn/app/api-prod:$BUILD_NUMBER
+                            """
+                        }
+                    }
+
+        
+                    stage('更新yaml') {
+                        steps {
+                            sh """
+                                ssh -t   -l root 172.31.100.180 << EOF
+                                cd /root/release/k8s/prod/app/api
+                                # sed -i 's!image: .*!image: ${newImage}!g' *.yaml  
+                                # sed -i '1,/image: .*/{s/image: .*/image: ${newImage}/}'  *.yaml             
+                                sed -i '1,/image: .*/{s!image: .*!image: ${newImage}!}'  *.yaml
+                                exit
+                                EOF
+                            """
+                        }
+                    }
+                    stage ("k8s-2") {
+                        steps ("部署华为云") {
+                            sh """
+                                ssh -t -l root 172.31.100.180 << EOF
+                                cd /root/release/k8s/prod/app/api
+                                kubectl apply -f .
+                                exit
+                                EOF
+                            """
+                        }
+                    }
+        
+                        }
+                    }
+                    //#######################
+                    stage("代码扫描") {
+                        stages {
+                            stage("SonarQube Scanner") {
+                                steps {
+                                    script {
+                                        try {
+                                            withSonarQubeEnv('SonarQubeServer') {
+                                                sh """
+                                                    export LANG='zh_CN.UTF-8'
+                                                    echo "sonar.projectKey=$JOB_NAME" > $WORKSPACE/sonar-project.properties
+                                                    echo "sonar.projectName=$JOB_NAME" >> $WORKSPACE/sonar-project.properties
+                                                    echo "sonar.projectVersion=1.0" >> $WORKSPACE/sonar-project.properties
+                                                    echo "" >> $WORKSPACE/sonar-project.properties
+                                                    echo "sonar.language=java" >> $WORKSPACE/sonar-project.properties
+                                                    echo "sonar.sourceEncoding=UTF-8" >> $WORKSPACE/sonar-project.properties
+                                                    echo "" >> $WORKSPACE/sonar-project.properties
+                                                    echo "sonar.sources=./" >> $WORKSPACE/sonar-project.properties
+                                                    echo "sonar.java.binaries=./" >> $WORKSPACE/sonar-project.properties
+                                                    echo "sonar.exclusions=daraz-api/doc/other/*" >> $WORKSPACE/sonar-project.properties
+
+                                                    cat $WORKSPACE/sonar-project.properties
+
+                                                    /usr/local/sonar-scanner/bin/sonar-scanner
+                                                """
+                                            }
+                                        } catch (err) {
+                                            sonarq_statue = false
+                                        }
+                                    }
+                                }
+                            }
+
+                            stage("Scanner Result") {
+                                steps {
+                                    script {
+                                        if (sonarq_statue){
+                                            timeout(10) {
+                                                def qg = waitForQualityGate('SonarQubeServer')
+                                                if (qg.status != 'OK') {
+                                                    // error "未通过Sonarqube的代码质量阈检查，请及时修改！failure: ${qg.status}"
+                                                    print("未通过Sonarqube的代码质量阈检查，请及时修改！failure: ${qg.status}")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }          
+    }
+    
